@@ -7,9 +7,12 @@ For each input it writes, into <dir>/<name>/:
   raw.txt      text in reading order (the word-for-word reference)
   layout.txt   text with the page's columns kept (PDF only)
   pages/*.png  page images, only when a PDF page has no text layer
+  preview-1.png  small image of page 1 (PDF), to spot watermarks, stamps and
+               logos that are drawn as shapes and have no text
 It prints a short report per file, so you know which method worked.
 """
 import argparse
+import re
 import shutil
 import subprocess
 import sys
@@ -62,6 +65,13 @@ def pdf(src: Path, out: Path) -> str:
         else:
             note += (f"; pages {empty} have NO text (scanned). No OCR here: "
                      f"read the images in {pdir} visually")
+    # Small page-1 image (~300 tokens to look at) for drawn-only content.
+    run(["pdftoppm", "-r", "50", "-png", "-singlefile", "-f", "1", "-l", "1",
+         str(src), str(out / "preview-1")])
+    # Semi-transparent drawing is how most watermarks are made ("VOID",
+    # "COPY", "DRAFT"). pdftotext cannot see them when they are shapes.
+    if re.search(rb"/ca\s+0?\.\d", src.read_bytes()):
+        note += "; uses transparency: possible WATERMARK, check preview-1.png"
     (out / "layout.txt").write_text(layout, encoding="utf-8")
     (out / "raw.txt").write_text(raw, encoding="utf-8")
     return note

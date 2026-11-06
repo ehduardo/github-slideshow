@@ -20,9 +20,15 @@ python3 -I .claude/skills/extraer-texto/scripts/extract.py "<file>" [...] --out 
 
 It prints one line per file saying which method it used. Per file it writes:
 
-- `raw.txt` — reading-order text. **This is the word-for-word reference.**
-- `layout.txt` (PDF) — same text with columns kept in place. Use it to see
-  which label goes with which value (e.g. `PRICE   70.00`).
+- `raw.txt` — reading-order text. **This is the word-for-word reference**
+  for the verifier. For a PDF, don't read it yourself: `layout.txt` has the
+  same words and reading both doubles the cost.
+- `layout.txt` (PDF) — same text with columns kept in place. Read this one
+  to see which label goes with which value (e.g. `PRICE   70.00`).
+- `preview-1.png` (PDF) — small image of page 1. Look at it once: it shows
+  watermarks, stamps, signatures and logos drawn as shapes, which have no
+  text and never reach `raw.txt`. If the script says "possible WATERMARK",
+  looking is required.
 - `pages/*.png` — only for scanned pages with no text layer.
 
 Why not MarkItDown alone: on PDFs it uses pdfminer, which in testing glued
@@ -39,7 +45,10 @@ guessing.
 
 ## 2. Arrange (do not rewrite)
 
-Read both `raw.txt` and `layout.txt`, then write `<name>.md`:
+Write `<name>.md` from `layout.txt` (PDF) or `raw.txt` (other formats).
+When `raw.txt` is already Markdown (Word via pandoc), copy it and fix small
+things with Edit instead of retyping it: retyping costs as many output tokens
+as the document has words.
 
 - Put label/value pairs back together (tables or `**Label:** value`).
 - Join lines that a PDF broke mid-sentence; keep real paragraph breaks.
@@ -53,7 +62,10 @@ Read both `raw.txt` and `layout.txt`, then write `<name>.md`:
 - Headings you add must use words already in the document. If you need a
   word that is not there, don't add it.
 - Drop nothing, including boilerplate and legal fine print.
-- Leave text that is only inside images (logos, barcodes) out, and say so.
+- Text seen only in the preview (watermark, stamp, logo) is not in the PDF's
+  text: record it in one `> Nota:` line at the top, e.g.
+  `> Nota: marca de agua "VOID" en diagonal (dibujada, no es texto del PDF).`
+  Don't mix it into the body. Barcodes and pure images: say they were left out.
 
 ## 3. Verify
 
